@@ -1,0 +1,12 @@
+{
+  "name": "Backend-Project",
+  "version": "1.0.0",
+  "description": "A detailed backend project.",
+  "license": "ISC",
+  "author": "Mirza Hammad Baig",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

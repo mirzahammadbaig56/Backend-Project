@@ -1,0 +1,3 @@
+# A Detailed Backend Project
+
+- [Model Link](https://www.youtube.com/redirect?event=video_description&redir_token=QUM4Zm9rVGhUV2lCMW9iSzhpNUZPbU5oeG55MnxBR3JiS2FsWUNieDdzVHg4Vm1TS3ppR2FWV05CalpDNGNmLVdiMldXUFNnYjBnZ2hFRm94MlR4ck9MRU10OVQxZWFMb0E0c183YnM3bVRoakNKRXFFeWFKQlZ1RFF2SUxxWEt3&q=https%3A%2F%2Fapp.eraser.io%2Fworkspace%2FYtPqZ1VogxGy1jzIDkzj%3Forigin%3Dshare&v=9B4CvtzXRpc)
