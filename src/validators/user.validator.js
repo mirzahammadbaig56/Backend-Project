@@ -26,4 +26,6 @@ const userZodSchema = z.object({
     .regex(/[0-9]/, "password must contain atleast one number"),
 });
 
-export { userZodSchema };
+const userPartialZodSchema = userZodSchema.partial();
+
+export { userZodSchema, userPartialZodSchema };
