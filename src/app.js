@@ -21,4 +21,13 @@ import userRouter from './routes/user.routes.js';
 app.use("/api/v1/users", userRouter);
 
 
+app.use((err, req, res, next) => {
+  const statusCode = err.statusCode || 500;
+  res.status(statusCode).json({
+    success: false,
+    message: err.message,
+    errors: err.errors || [],
+  });
+});
+
 export default app;

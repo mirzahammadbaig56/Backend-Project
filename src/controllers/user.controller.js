@@ -69,12 +69,7 @@ const registerUser = asyncHandler(async (req, res) => {
 });
 
 const loginUser = asyncHandler(async (req, res) => {
-  const result = userPartialZodSchema.safeParse(req.body);
-  if (!result.success) {
-    const errors = result.error.issues.map((err) => err.message);
-    throw new ApiError(400, "Validation failed", errors);
-  }
-  const { email, username, password } = result.data;
+  const { email, username, password } = req.body;
   if (!email && !username) {
     throw new ApiError(400, "Email or Username is required");
   }
@@ -82,7 +77,7 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Password is required");
   }
   const user = await User.findOne({
-    $or: [...(username ? [{ username }] : []), ...(email ? [{ email }] : [])],
+    $or: [{username}, {email}],
   });
   if (!user) {
     throw new ApiError(404, "User with this email/username not found");
@@ -108,12 +103,12 @@ const loginUser = asyncHandler(async (req, res) => {
     .json(
       new ApiResponse(
         200,
+        "User loggedIn successfully",
         {
           user: loggedInUser,
           accessToken,
           refreshToken,
-        },
-        "User loggedIn successfully"
+        }
       )
     );
 });
@@ -122,8 +117,8 @@ const logoutUser = asyncHandler(async (req, res) => {
   await User.findByIdAndUpdate(
     req.user._id,
     {
-      $set: {
-        refreshToken: undefined,
+      $unset: {
+        refreshToken: 1,
       },
     },
     { new: true }
@@ -137,7 +132,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     .status(200)
     .clearCookie("accessToken", options)
     .clearCookie("refreshToken", options)
-    .json(new ApiResponse(200, {}, "User loggedOut successfully"));
+    .json(new ApiResponse(200, "User loggedOut successfully", {}));
 });
 
 export { registerUser, loginUser, logoutUser };
