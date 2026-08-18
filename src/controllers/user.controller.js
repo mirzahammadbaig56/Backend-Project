@@ -6,7 +6,7 @@ import {
 import ApiError from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { changePasswordZodValidator } from "../validators/password.validator.js";
 
@@ -60,8 +60,14 @@ const registerUser = asyncHandler(async (req, res) => {
     email,
     password,
     fullName,
-    avatar: avatar.url,
-    coverImage: coverImage ? coverImage.url : "",
+    avatar: {
+      url: avatar.url,
+      publicId: avatar.public_id,
+    },
+    coverImage: {
+      url: coverImage ? coverImage.url : "",
+      publicId: coverImage ? coverImage.public_id : "",
+    },
   });
 
   const response = await User.findById(user._id).select(
@@ -243,11 +249,18 @@ const updateAvatar = asyncHandler(async (req, res) => {
       "Something went wrong while uploading file on cloudinary"
     );
   }
+
+  const oldUser = await User.findById(req.user?._id);
+  await deleteFromCloudinary(oldUser.avatar.publicId);
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        avatar: avatar.url,
+        avatar: {
+          url: avatar.url,
+          publicId: avatar.public_id
+        },
       },
     },
     { new: true }
@@ -269,11 +282,18 @@ const updatecoverImage = asyncHandler(async (req, res) => {
       "Something went wrong while uploading file on cloudinary"
     );
   }
+
+  const oldUser = await User.findById(req.user?._id);
+  await deleteFromCloudinary(oldUser.coverImage?.publicId);
+
   const user = await User.findByIdAndUpdate(
     req.user?._id,
     {
       $set: {
-        coverImage: coverImage.url,
+        coverImage: {
+          url: coverImage.url,
+          publicId: coverImage.public_id
+        },
       },
     },
     { new: true }
