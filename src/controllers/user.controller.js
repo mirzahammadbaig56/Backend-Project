@@ -8,6 +8,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
+import { changePasswordZodValidator } from "../validators/password.validator.js";
 
 async function generateAccessAndRefreshTokens(userId) {
   try {
@@ -147,17 +148,17 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       process.env.REFRESH_TOKEN_SECRET
     );
     const user = await User.findById(decodedToken?._id);
-    if(!user){
+    if (!user) {
       throw new ApiError(401, "Invalid refresh token");
     }
-    if(incomingRefreshToken !== user.refreshToken){
+    if (incomingRefreshToken !== user.refreshToken) {
       throw new ApiError(401, "Refresh token is expired or used");
     }
-  
+
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
       decodedToken?._id
     );
-  
+
     res
       .status(200)
       .cookie("refreshToken", refreshToken, options)
@@ -165,7 +166,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       .json(
         new ApiResponse(200, "Access token refreshed successfully", {
           accessToken,
-          refreshToken,   
+          refreshToken,
         })
       );
   } catch (error) {
@@ -173,4 +174,26 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   }
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeUserPassword = asyncHandler(async (req, res, next) => {
+  const result = changePasswordZodValidator.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((err) => err.message);
+    throw new ApiError(400, "Validation failed", errors);
+  }
+  const { oldPassword, newPassword, confirmPassword } = result.data;
+  if (newPassword !== confirmPassword) {
+    throw new ApiError(400, "New password doesn't match with confirm password");
+  }
+  const user = await User.findById(req.user?._id);
+  const pass = await user.isPasswordCorrect(oldPassword);
+  if (!pass) {
+    throw new ApiError(400, "Invalid old password");
+  }
+  user.password = newPassword;
+  await user.save({validateBeforeSave: false});
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Password changed successfully", {}));
+});
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken, changeUserPassword };

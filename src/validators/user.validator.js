@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { passwordZodValidator } from "./password.validator.js";
 
 const userZodSchema = z.object({
   username: z
@@ -17,13 +18,7 @@ const userZodSchema = z.object({
     .trim()
     .min(3, "length of full-name must be atleast 3 characters")
     .max(50, "length of full-name must not exceed 50 characters"),
-  password: z
-    .string()
-    .min(8, "password must be atleast 8 characters")
-    .max(64, "password must not exceed 64 characters")
-    .regex(/[A-Z]/, "password must contain atleast one uppercase letter")
-    .regex(/[a-z]/, "password must contain atleast one lowercase letter")
-    .regex(/[0-9]/, "password must contain atleast one number"),
+  password: passwordZodValidator,
 });
 
 const userPartialZodSchema = userZodSchema.partial();
