@@ -12,6 +12,7 @@ import {
 } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken";
 import { changePasswordZodValidator } from "../validators/password.validator.js";
+import mongoose from "mongoose";
 
 async function generateAccessAndRefreshTokens(userId) {
   try {
@@ -376,6 +377,56 @@ const getChannelProfile = asyncHandler(async (req, res) => {
     );
 });
 
+const getWatchHistory = asyncHandler(async (req, res) => {
+  const user = await User.aggregate([
+    {
+      $match: {
+        _id: new mongoose.Types.ObjectId(req.user?._id),
+      },
+    },
+    {
+      $lookup: {
+        from: "videos",
+        localField: "watchHistory",
+        foreignField: "_id",
+        as: "watchHistory",
+        pipeline: [
+          {
+            $lookup: {
+              from: "users",
+              localField: "owner",
+              foreignField: "_id",
+              as: "owner",
+              pipeline: [
+                {
+                  $project: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                  },
+                },
+              ],
+            },
+          },
+          {
+            $addFields: {
+              owner: {
+                $first: "$owner",
+              },
+            },
+          },
+        ],
+      },
+    },
+  ]);
+  if (!user?.length) {
+    throw new ApiError(404, "Watch history not found");
+  }
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Watch history fetched successfully", user[0].watchHistory));
+});
+
 export {
   registerUser,
   loginUser,
@@ -387,4 +438,5 @@ export {
   updateAvatar,
   updatecoverImage,
   getChannelProfile,
+  getWatchHistory,
 };
