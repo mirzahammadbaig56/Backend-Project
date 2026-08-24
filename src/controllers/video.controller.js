@@ -128,6 +128,31 @@ const publishAVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(201, "Video published successfully", publishVideo));
 });
 
+const getVideoById = asyncHandler(async (req, res) => {
+  const { videoId } = req.params;
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+  const video = await Video.findByIdAndUpdate(
+    videoId,
+    { $inc: { views: 1 } },
+    { new: true }
+  ).populate("owner", "username fullName avatar");
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  if (
+    !video.isPublish &&
+    video.owner.username !== req.user?.username
+  ) {
+    throw new ApiError(403, "This video is not published");
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Video fetched successfully", video));
+});
+
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: update video details like title, description, thumbnail
