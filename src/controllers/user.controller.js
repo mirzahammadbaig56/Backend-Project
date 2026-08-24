@@ -13,6 +13,7 @@ import {
 import jwt from "jsonwebtoken";
 import { changePasswordZodValidator } from "../validators/password.validator.js";
 import mongoose from "mongoose";
+import { cleanupLocalFiles } from "../utils/cleanupFiles.js";
 
 async function generateAccessAndRefreshTokens(userId) {
   try {
@@ -38,6 +39,7 @@ const options = {
 const registerUser = asyncHandler(async (req, res) => {
   const result = userZodSchema.safeParse(req.body);
   if (!result.success) {
+    cleanupLocalFiles(req.files);
     const errors = result.error.issues.map((err) => err.message);
     throw new ApiError(400, "Validation failed", errors);
   }

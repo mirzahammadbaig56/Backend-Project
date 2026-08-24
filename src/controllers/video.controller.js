@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { videoZodSchema } from "../validators/video.validator.js";
+import { cleanupLocalFiles } from "../utils/cleanupFiles.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -81,6 +82,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
   const result = videoZodSchema.safeParse(req.body);
   if (!result.success) {
+    cleanupLocalFiles(req.files);
     const errors = result.error.issues.map((err) => err.message);
     throw new ApiError(400, "Validation failed", errors);
   }
@@ -124,11 +126,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
   res
     .status(201)
     .json(new ApiResponse(201, "Video published successfully", publishVideo));
-});
-
-const getVideoById = asyncHandler(async (req, res) => {
-  const { videoId } = req.params;
-  //TODO: get video by id
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
