@@ -4,8 +4,14 @@ import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
-import { videoZodSchema } from "../validators/video.validator.js";
+import {
+  deleteFromCloudinary,
+  uploadOnCloudinary,
+} from "../utils/cloudinary.js";
+import {
+  videoPartialZodSchema,
+  videoZodSchema,
+} from "../validators/video.validator.js";
 import { cleanupLocalFiles } from "../utils/cleanupFiles.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -141,10 +147,7 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
-  if (
-    !video.isPublish &&
-    video.owner.username !== req.user?.username
-  ) {
+  if (!video.isPublish && video.owner.username !== req.user?.username) {
     throw new ApiError(403, "This video is not published");
   }
 
@@ -155,7 +158,46 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
-  //TODO: update video details like title, description, thumbnail
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "No video found with this videoId");
+  }
+  if (video.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(403, "Only owner can edit his video");
+  }
+  const result = videoPartialZodSchema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((err) => err.message);
+    throw new ApiError(400, "Validation failed", errors);
+  }
+  const { title, description } = result.data;
+  const thumbnailLocalPath = req.file?.path;
+  if (!title && !description && !thumbnailLocalPath) {
+    throw new ApiError(400, "At least one field is required for update");
+  }
+
+  if (title) video.title = title;
+  if (description) video.description = description;
+  if (thumbnailLocalPath) {
+    const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+    if (!thumbnail) {
+      throw new ApiError(500, "Error uploading thumbnail to cloudinary");
+    }
+    await deleteFromCloudinary(
+      video.thumbnail.publicId
+    );
+    video.thumbnail = {
+      url: thumbnail.url,
+      publicId: thumbnail.public_id,
+    };
+  }
+  const updatedVideo = await video.save({ validateBeforeSave: false });
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Video updated successfully", updatedVideo));
 });
 
 const deleteVideo = asyncHandler(async (req, res) => {

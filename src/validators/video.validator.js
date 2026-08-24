@@ -13,4 +13,6 @@ const videoZodSchema = z.object({
     .max(300, "length of full-name must not exceed 300 characters"),
 });
 
-export { videoZodSchema };
+const videoPartialZodSchema = videoZodSchema.partial();
+
+export { videoZodSchema, videoPartialZodSchema };
