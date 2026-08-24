@@ -16,9 +16,11 @@ app.use(cookieParser()); // Parse cookies
 
 // import Routers
 import userRouter from './routes/user.routes.js';
+import videoRouter from './routes/video.routes.js'
 
 // Routers decalaration
 app.use("/api/v1/users", userRouter);
+app.use("/api/v1/videos", videoRouter);
 
 
 app.use((err, req, res, next) => {
