@@ -13,6 +13,7 @@ import {
   videoZodSchema,
 } from "../validators/video.validator.js";
 import { cleanupLocalFiles } from "../utils/cleanupFiles.js";
+import fs from "fs";
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
@@ -147,7 +148,10 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
-  if (!video.isPublish && video.owner.username !== req.user?.username) {
+  if (
+    !video.isPublished &&
+    video.owner._id.toString() !== req.user?._id?.toString()
+  ) {
     throw new ApiError(403, "This video is not published");
   }
 
@@ -161,6 +165,14 @@ const updateVideo = asyncHandler(async (req, res) => {
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid videoId");
   }
+  const result = videoPartialZodSchema.safeParse(req.body);
+  if (!result.success) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    const errors = result.error.issues.map((err) => err.message);
+    throw new ApiError(400, "Validation failed", errors);
+  }
   const video = await Video.findById(videoId);
   if (!video) {
     throw new ApiError(404, "No video found with this videoId");
@@ -168,11 +180,7 @@ const updateVideo = asyncHandler(async (req, res) => {
   if (video.owner.toString() !== req.user?._id.toString()) {
     throw new ApiError(403, "Only owner can edit his video");
   }
-  const result = videoPartialZodSchema.safeParse(req.body);
-  if (!result.success) {
-    const errors = result.error.issues.map((err) => err.message);
-    throw new ApiError(400, "Validation failed", errors);
-  }
+  
   const { title, description } = result.data;
   const thumbnailLocalPath = req.file?.path;
   if (!title && !description && !thumbnailLocalPath) {
