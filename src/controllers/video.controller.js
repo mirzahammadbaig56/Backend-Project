@@ -1,6 +1,5 @@
 import mongoose, { isValidObjectId } from "mongoose";
 import { Video } from "../models/video.model.js";
-import { User } from "../models/user.model.js";
 import ApiError from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -140,11 +139,10 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid videoId");
   }
-  const video = await Video.findByIdAndUpdate(
-    videoId,
-    { $inc: { views: 1 } },
-    { new: true }
-  ).populate("owner", "username fullName avatar");
+  const video = await Video.findById(videoId).populate(
+    "owner",
+    "username fullName avatar"
+  );
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
@@ -155,9 +153,12 @@ const getVideoById = asyncHandler(async (req, res) => {
     throw new ApiError(403, "This video is not published");
   }
 
+  video.views += 1;
+  const updatedVideo = await video.save({ validateBeforeSave: false });
+
   res
     .status(200)
-    .json(new ApiResponse(200, "Video fetched successfully", video));
+    .json(new ApiResponse(200, "Video fetched successfully", updatedVideo));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
@@ -228,6 +229,23 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid videoId");
+  }
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "Video not found");
+  }
+  if (video.owner.toString() !== req.user?._id.toString()) {
+    throw new ApiError(403, "Only owner can toggle his video status");
+  }
+  video.isPublished = !video.isPublished;
+  const updatedVideo = await video.save({ validateBeforeSave: false });
+  res
+    .status(200)
+    .json(
+      new ApiResponse(200, "Publish status toggled successfully", updatedVideo)
+    );
 });
 
 export {
