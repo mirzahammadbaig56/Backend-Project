@@ -1,8 +1,9 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { Comment } from "../models/comment.model.js";
 import ApiError from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { commentZodSchema } from "../validators/comment.validator.js";
 
 const getVideoComments = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
@@ -64,13 +65,12 @@ const addComment = asyncHandler(async (req, res) => {
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video Id");
   }
-  const { content } = req.body;
-  if (!content) {
-    throw new ApiError(400, "Content of the comment is required");
+  const result = commentZodSchema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((err) => err.message);
+    throw new ApiError(400, "Validation failed", errors);
   }
-  if (content.length < 5) {
-    throw new ApiError(400, "Comment should be atleast 5 characters long");
-  }
+  const { content } = result.data;
   const newComment = await Comment.create({
     content,
     video: videoId,
@@ -85,11 +85,46 @@ const addComment = asyncHandler(async (req, res) => {
 });
 
 const updateComment = asyncHandler(async (req, res) => {
-  
+  const { commentId } = req.params;
+  if (!commentId || !isValidObjectId(commentId)) {
+    throw new ApiError(400, "Invalid comment Id");
+  }
+  const oldComment = await Comment.findById(commentId);
+  if (!oldComment) {
+    throw new ApiError(404, "No comment found");
+  }
+  if (oldComment.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Only owner can update his comment");
+  }
+  const result = commentZodSchema.safeParse(req.body);
+  if (!result.success) {
+    const errors = result.error.issues.map((err) => err.message);
+    throw new ApiError(400, "Validation failed", errors);
+  }
+  const { content } = result.data;
+  oldComment.content = content;
+  const updatedComment = await oldComment.save({ validateBeforeSave: false });
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Comment updated successfully", updatedComment));
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
-  // TODO: delete a comment
+  const { commentId } = req.params;
+  if (!commentId || !isValidObjectId(commentId)) {
+    throw new ApiError(400, "Invalid comment Id");
+  }
+  const comment = await Comment.findById(commentId);
+  if (!comment) {
+    throw new ApiError(404, "No comment found");
+  }
+  if (comment.owner.toString() !== req.user._id.toString()) {
+    throw new ApiError(403, "Only owner can delete his comment");
+  }
+  const deletedComment = await Comment.findByIdAndDelete(commentId);
+  res
+    .status(200)
+    .json(new ApiResponse(200, "Comment deleted successfully", deletedComment));
 });
 
 export { getVideoComments, addComment, updateComment, deleteComment };
