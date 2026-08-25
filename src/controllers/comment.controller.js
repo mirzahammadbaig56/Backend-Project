@@ -60,11 +60,32 @@ const getVideoComments = asyncHandler(async (req, res) => {
 });
 
 const addComment = asyncHandler(async (req, res) => {
-  // TODO: add a comment to a video
+  const { videoId } = req.params;
+  if (!videoId || !isValidObjectId(videoId)) {
+    throw new ApiError(400, "Invalid video Id");
+  }
+  const { content } = req.body;
+  if (!content) {
+    throw new ApiError(400, "Content of the comment is required");
+  }
+  if (content.length < 5) {
+    throw new ApiError(400, "Comment should be atleast 5 characters long");
+  }
+  const newComment = await Comment.create({
+    content,
+    video: videoId,
+    owner: req.user._id,
+  });
+  if (!newComment) {
+    throw new ApiError(500, "Something went wrong while adding comment");
+  }
+  res
+    .status(201)
+    .json(new ApiResponse(201, "Comment added successfully", newComment));
 });
 
 const updateComment = asyncHandler(async (req, res) => {
-  // TODO: update a comment
+  
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
