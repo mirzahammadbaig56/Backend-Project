@@ -10,18 +10,38 @@ cloudinary.config({
 const uploadOnCloudinary = async (localFilePath) => {
   try {
     if (!localFilePath) return null;
-
     const response = await cloudinary.uploader.upload(localFilePath, {
       resource_type: "auto",
     });
     console.log("File has been uploaded successfully !! ", response.url);
-    fs.unlinkSync(localFilePath);
+    if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
     return response;
   } catch (error) {
     console.log("Error uploading file to cloudinary: ", error);
-    fs.unlinkSync(localFilePath);
+    if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
     return null;
   }
+};
+
+const uploadLargeOnCloudinary = (localFilePath) => {
+  return new Promise((resolve) => {
+    if (!localFilePath) return resolve(null);
+
+    cloudinary.uploader.upload_large(
+      localFilePath,
+      { resource_type: "auto", chunk_size: 6000000 },
+      (error, result) => {
+        if (error) {
+          console.log("Error uploading file to cloudinary: ", error);
+          if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
+          return resolve(null);
+        }
+        console.log("File uploaded successfully !!", result.url);
+        if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath);
+        resolve(result);
+      }
+    );
+  });
 };
 
 const deleteFromCloudinary = async (publicId) => {
@@ -36,4 +56,4 @@ const deleteFromCloudinary = async (publicId) => {
   }
 };
 
-export { uploadOnCloudinary, deleteFromCloudinary };
+export { uploadOnCloudinary, uploadLargeOnCloudinary, deleteFromCloudinary };

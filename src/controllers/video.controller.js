@@ -5,6 +5,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import {
   deleteFromCloudinary,
+  uploadLargeOnCloudinary,
   uploadOnCloudinary,
 } from "../utils/cloudinary.js";
 import {
@@ -102,7 +103,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
   if (!thumbnailLocalPath) {
     throw new ApiError(400, "Thumbnail file is required");
   }
-  const video = await uploadOnCloudinary(videoLocalPath);
+  const video = await uploadLargeOnCloudinary(videoLocalPath);
   const thumbnail = await uploadOnCloudinary(thumbnailLocalPath);
   if (!video) {
     throw new ApiError(400, "Error uploading video to cloudinary");
