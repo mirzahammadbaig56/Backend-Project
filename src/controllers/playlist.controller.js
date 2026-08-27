@@ -8,6 +8,7 @@ import {
   playlistPartialZodSchema,
 } from "../validators/playlist.validator.js";
 import { Video } from "../models/video.model.js";
+import { User } from "../models/user.model.js";
 
 const createPlaylist = asyncHandler(async (req, res) => {
   const result = playlistZodSchema.safeParse(req.body);
@@ -33,6 +34,10 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   if (!userId || !isValidObjectId(userId)) {
     throw new ApiError(400, "Invalid userId");
+  }
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(404, "User not found");
   }
   const playlists = await Playlist.aggregate([
     {
