@@ -65,6 +65,10 @@ const addComment = asyncHandler(async (req, res) => {
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video Id");
   }
+  const video = await Video.findById(videoId);
+  if (!video) {
+    throw new ApiError(404, "No video found");
+  }
   const result = commentZodSchema.safeParse(req.body);
   if (!result.success) {
     const errors = result.error.issues.map((err) => err.message);

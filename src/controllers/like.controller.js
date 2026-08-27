@@ -3,11 +3,18 @@ import { Like } from "../models/like.model.js";
 import ApiError from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { Video } from "../models/video.model.js";
+import { Comment } from "../models/comment.model.js";
+import { Tweet } from "../models/tweet.model.js";
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   if (!videoId || !isValidObjectId(videoId)) {
     throw new ApiError(400, "Invalid video Id");
+  }
+  const video = await Video.findById(videoId);
+  if(!video){
+    throw new ApiError(404, "No video found");
   }
   const isLiked = await Like.findOne({
     video: videoId,
@@ -42,6 +49,10 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
   const { commentId } = req.params;
   if (!commentId || !isValidObjectId(commentId)) {
     throw new ApiError(400, "Invalid comment Id");
+  }
+  const comment = await Comment.findById(commentId);
+  if (!comment) {
+    throw new ApiError(404, "No comment found");
   }
   const isLiked = await Like.findOne({
     comment: commentId,
@@ -79,6 +90,10 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
   const { tweetId } = req.params;
   if (!tweetId || !isValidObjectId(tweetId)) {
     throw new ApiError(400, "Invalid tweet Id");
+  }
+  const tweet = await Tweet.findById(tweetId);
+  if (!tweet) {
+    throw new ApiError(404, "No tweet found");
   }
   const isLiked = await Like.findOne({
     tweet: tweetId,
