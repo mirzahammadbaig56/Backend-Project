@@ -155,11 +155,56 @@ const getVideoById = asyncHandler(async (req, res) => {
   }
 
   video.views += 1;
-  const updatedVideo = await video.save({ validateBeforeSave: false });
+  await video.save({ validateBeforeSave: false });
+
+   const videoInfo = await Video.aggregate([
+     {
+       $match: { _id: new mongoose.Types.ObjectId(videoId) },
+     },
+     {
+       $lookup: {
+         from: "users",
+         localField: "owner",
+         foreignField: "_id",
+         as: "owner",
+         pipeline: [{ $project: { username: 1, fullName: 1, avatar: 1 } }],
+       },
+     },
+     {
+       $addFields: { owner: { $first: "$owner" } },
+     },
+     {
+       $lookup: {
+         from: "likes",
+         localField: "_id",
+         foreignField: "video",
+         as: "likes",
+       },
+     },
+     {
+       $addFields: {
+         likesCount: { $size: "$likes" },
+         isLiked: {
+           $cond: {
+             if: { $in: [req.user?._id, "$likes.likedBy"] },
+             then: true,
+             else: false,
+           },
+         },
+       },
+     },
+     {
+       $project: { likes: 0 }, // raw likes array client ko nahi bhejni
+     },
+   ]);
+
+   if (!videoInfo?.length) {
+     throw new ApiError(404, "Video not found");
+   }
 
   res
     .status(200)
-    .json(new ApiResponse(200, "Video fetched successfully", updatedVideo));
+    .json(new ApiResponse(200, "Video fetched successfully", videoInfo[0]));
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
